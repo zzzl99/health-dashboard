@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 SOURCE=pathlib.Path.home()/'Library/Application Support/PersonalHealthAnalysis/.private/latest.json'
 TZ=ZoneInfo('Asia/Shanghai')
+RECOVERY_TYPES={'RUNNING','BIKING','STRENGTH_TRAINING','WEIGHTLIFTING','WEIGHT_LIFTING','CALISTHENICS','RESISTANCE_TRAINING'}
 def instant(s): return dt.datetime.fromisoformat(s.replace('Z','+00:00')).astimezone(TZ)
 def dedupe(records,field):
     # Prefer explicit recordings, then longest interval; never sum overlapping sessions.
@@ -17,7 +18,8 @@ def dedupe(records,field):
     for r,a,b in candidates:
         if not any(a<y and b>x for _,x,y in kept):kept.append((r,a,b))
     return sorted(kept,key=lambda x:x[1])
-def build(raw,old):
+def build(raw,old,recovery=None):
+    recovery=recovery or {}
     if raw.get('errors'): raise ValueError('Incomplete source')
     days={d['date']:d for d in old.get('days',[])}
     start=instant(raw['periodStart']).date();end=instant(raw['periodEndExclusive']).date()
@@ -39,7 +41,11 @@ def build(raw,old):
         typ=s.get('exerciseType','UNKNOWN');m=s.get('metricsSummary',{})
         mins=float(s.get('activeDuration',str((b-a).total_seconds())+'s').rstrip('s'))/60
         km=float(m['distanceMillimeters'])/1e6 if 'distanceMillimeters' in m else None
-        d['activities'].append({'type':typ,'start':a.isoformat(),'minutes':round(mins,1),'km':round(km,2) if km is not None else None})
+        activity={'type':typ,'start':a.isoformat(),'minutes':round(mins,1),'km':round(km,2) if km is not None else None}
+        if typ in RECOVERY_TYPES:
+            k=s['interval']['startTime']+'|'+s['interval']['endTime']
+            activity['recovery']=recovery.get(k,{}).get('result',{'hrr1':None,'hrr2':None,'note':'暂无足够心率采样。'})
+        d['activities'].append(activity)
         if typ=='RUNNING':
             d['runMinutes']=(d['runMinutes'] or 0)+mins
             if km is not None:d['runKm']=(d['runKm'] or 0)+km
@@ -55,6 +61,8 @@ def build(raw,old):
     return {'fetchedAt':raw['fetchedAt'],'deviceSync':max((d.get('lastSyncTime','') for d in raw['devices']),default=''),'days':sorted(days.values(),key=lambda d:d['date'])[-180:],'planStart':'2026-10-26','planEnd':'2027-01-25'}
 if __name__=='__main__':
     p=ROOT/'.private/summary.json';old=json.loads(p.read_text()) if p.exists() else {}
-    result=build(json.loads(SOURCE.read_text()),old)
+    recovery_path=ROOT/'.private/recovery.json'
+    recovery=json.loads(recovery_path.read_text()) if recovery_path.exists() else {}
+    result=build(json.loads(SOURCE.read_text()),old,recovery)
     p.write_text(json.dumps(result,ensure_ascii=False));p.chmod(0o600)
     print('Aggregated health data locally; '+str(len(result['days']))+' days')
