@@ -11,14 +11,14 @@ export function updateMetrics(data,heart,date){
  $('#metrics').innerHTML=configs.map(c=>`<button class="metric metricButton" data-metric="${c.key}" aria-label="查看${titles[c.key]}统计图"><div class="metricHeading">${titles[c.key]}<span>↗</span></div><div class="value">${c.value??'—'}<small>${c.unit}</small></div>${c.plot}<div class="note">${c.note}</div></button>`).join('');
  document.querySelectorAll('[data-metric]').forEach(button=>button.onclick=()=>openMetric(button.dataset.metric));
 }
-function openMetric(key){current=key;days=key==='heart'?1:7;anchor=today;$('#metricTitle').textContent=titles[key];$('#metricDate').value=anchor;$('#metricDate').max=today;$('#metricDialog').showModal();document.body.classList.add('dialogOpen');renderMetric();}
+function openMetric(key){current=key;days=key==='heart'?1:7;anchor=today;$('#metricTitle').textContent=key==='exercise'?'运动统计':titles[key];$('#metricDate').value=anchor;$('#metricDate').max=today;$('#metricDialog').showModal();document.body.classList.add('dialogOpen');renderMetric();}
 async function renderMetric(){
  const root=$('#metricBody');purgeCharts(root);root.innerHTML='<div class="chartReadout" id="metricReadout" aria-live="polite">移动鼠标或点击图线，查看时间与数值。</div><div id="metricPlot" class="interactivePlot"></div><p class="caption" id="metricNote"></p><div id="metricExtra"></div>';
  document.querySelectorAll('[data-metric-range]').forEach(b=>b.classList.toggle('active',Number(b.dataset.metricRange)===days));
  const from=dateAdd(anchor,1-days),rows=Array.from({length:days},(_,i)=>state.days.find(d=>d.date===dateAdd(from,i))??{date:dateAdd(from,i)}),range=[dateTime(from),dateTime(dateAdd(anchor,1))];let traces=[],unit='',note='',intraday=days===1;
  if(current==='heart'){
   unit='bpm';const points=withGaps((heartData?.days??[]).filter(d=>d.date>=from&&d.date<=anchor).flatMap(d=>d.points));
-  if(days<=7){traces=[{type:'scatter',mode:'lines',name:'分钟平均心率',x:points.map(p=>p[0]+8*3600e3),y:points.map(p=>p[1]),line:{color:'#087ea0',width:2},customdata:points.map(p=>({detail:`${formatTime(p[0]+8*3600e3)} · 平均 ${p[1]} bpm · 范围 ${p[2]}–${p[3]} bpm · ${p[4]} 次采样`})),hovertemplate:'%{customdata.detail}<extra></extra>'}];note='最近 7 天提供分钟平均、最小/最大值和采样数。心率卡片显示最近一次真实采样；曲线不是实时读数。';}
+  if(days<=7){traces=[{type:'scatter',mode:'lines',name:'分钟平均心率',x:points.map(p=>p[0]+8*3600e3),y:points.map(p=>p[1]),line:{color:'#087ea0',width:2},customdata:points.map(p=>({min:p[2],max:p[3],count:p[4],detail:`${formatTime(p[0]+8*3600e3)} · 平均 ${p[1]} bpm · 范围 ${p[2]}–${p[3]} bpm · ${p[4]} 次采样`})),hovertemplate:'平均 %{y:.2f} bpm<br>范围 %{customdata.min}–%{customdata.max} bpm<br>%{customdata.count} 次采样<extra></extra>'}];note='最近 7 天提供分钟平均、最小/最大值和采样数。心率卡片显示最近一次真实采样；曲线不是实时读数。';}
   else {traces=[dailyTrace((heartData?.daily??[]).filter(d=>d.date>=from&&d.date<=anchor),'mean','每日平均心率','#087ea0')];note='月与三个月视图显示已积累的每日平均心率；历史不足的日期不补值。';}
   if(heartData&&Object.keys(heartData.errors??{}).length)note+=' 部分日期同步未完成，当前显示已有数据。';
  }else if(['rhr','hrv','spo2'].includes(current)){
