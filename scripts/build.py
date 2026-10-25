@@ -57,7 +57,7 @@ def build(raw,old,recovery=None):
     for r,a,b in dedupe(raw['data'].get('steps',[]),'steps'):
         d=day(a.date())
         if d is not None and 'count' in r['steps']:d['steps']=(d['steps'] or 0)+int(r['steps']['count'])
-    for kind,field,value,out in [('daily-resting-heart-rate','dailyRestingHeartRate','beatsPerMinute','rhr'),('daily-heart-rate-variability','dailyHeartRateVariability','averageHeartRateVariabilityMilliseconds','hrv')]:
+    for kind,field,value,out in [('daily-oxygen-saturation','dailyOxygenSaturation','averagePercentage','spo2'),('daily-resting-heart-rate','dailyRestingHeartRate','beatsPerMinute','rhr'),('daily-heart-rate-variability','dailyHeartRateVariability','averageHeartRateVariabilityMilliseconds','hrv')]:
         for r in raw['data'].get(kind,[]):
             s=r[field];date=s['date'];d=day(dt.date(date['year'],date['month'],date['day']))
             if d is not None and value in s:d[out]=float(s[value])

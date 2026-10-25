@@ -1,22 +1,10 @@
+import {mountPlot,wallTime} from './charts.mjs';
 const stageInfo={AWAKE:['清醒','#d7508b'],SHORT:['短暂觉醒','#009c69'],REM:['快速眼动睡眠','#62c9ec'],LIGHT:['浅度睡眠','#427bf2'],DEEP:['深度睡眠','#57258d'],ASLEEP:['睡眠（未分期）','#7286a3'],RESTLESS:['不安稳','#c09542']};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clock=value=>new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value));
 const duration=m=>m==null?'暂无数据':m<1&&m>0?Math.round(m*60)+' 秒':(Math.floor(Math.round(m)/60)?Math.floor(Math.round(m)/60)+' 小时 ':'')+(Math.round(m)%60)+' 分钟';
 export function sleepChart(session){
- const total=session.durationSeconds;if(!total||total<0)return '<p class="caption">该次睡眠时间范围不可用。</p>';
- const full=session.type==='STAGES'||session.segments.some(s=>['REM','LIGHT','DEEP'].includes(s.type));
- const keys=full?['AWAKE','SHORT','REM','LIGHT','DEEP']:['AWAKE','SHORT','RESTLESS','ASLEEP'];
- const width=720,left=12,right=12,track=width-left-right,rowHeight=90,firstY=44,barHeight=30,height=keys.length*rowHeight+54;
- const x=seconds=>left+Math.max(0,Math.min(1,seconds/total))*track;
- const y=key=>firstY+keys.indexOf(key)*rowHeight;
- const segmentTime=n=>clock(Date.parse(session.start)+n*1000);
- let svg=`<svg class="sleepTimeline" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(clock(session.start))}至${esc(clock(session.end))}的睡眠分期时间轴"><title>睡眠分期与短暂觉醒时间轴</title>`;
- for(const key of keys){const [label,color]=stageInfo[key];const value=key==='SHORT'?session.shortAwakeningMinutes:session.stageMinutes[key];svg+=`<text x="${left}" y="${y(key)-13}" class="sleepChartLabel">${label} · ${duration(value)}</text><rect x="${left}" y="${y(key)}" width="${track}" height="${barHeight}" rx="15" fill="#edf0f6"/>`;}
- // Stage transitions connect only contiguous known segments; never bridge missing data.
- session.segments.forEach((segment,i)=>{const previous=session.segments[i-1];if(previous&&Math.abs(previous.end-segment.start)<1&&keys.includes(previous.type)&&keys.includes(segment.type)&&previous.type!==segment.type)svg+=`<line x1="${x(segment.start)}" x2="${x(segment.start)}" y1="${y(previous.type)+barHeight/2}" y2="${y(segment.type)+barHeight/2}" stroke="${stageInfo[segment.type][1]}" stroke-opacity=".22" stroke-width="3"/>`;});
- for(const key of keys){const items=key==='SHORT'?session.shortAwakenings:session.segments.filter(s=>s.type===key),color=stageInfo[key][1];for(const segment of items){const label=`${stageInfo[key][0]} ${segmentTime(segment.start)}–${segmentTime(segment.end)}，${duration((segment.end-segment.start)/60)}`;svg+=`<rect x="${x(segment.start)}" y="${y(key)}" width="${Math.max(1.5,x(segment.end)-x(segment.start))}" height="${barHeight}" rx="${key==='SHORT'?1:Math.min(10,(x(segment.end)-x(segment.start))/2)}" fill="${color}" fill-opacity="${key==='REM'?'.5':'1'}"><title>${esc(label)}</title></rect>`;}}
- const axisY=keys.length*rowHeight+15;svg+=`<text x="${left}" y="${axisY}" class="sleepAxis">${clock(session.start)}</text><text x="${width/2}" y="${axisY}" text-anchor="middle" class="sleepAxis">${clock(Date.parse(session.start)+total*500)}</text><text x="${width-right}" y="${axisY}" text-anchor="end" class="sleepAxis">${clock(session.end)}</text><text x="${left}" y="${axisY+25}" class="sleepAxis">就寝时间</text><text x="${width-right}" y="${axisY+25}" text-anchor="end" class="sleepAxis">起床时间</text></svg>`;
- return svg;
+ return `<div class="sleepInteractive" data-session="${esc(JSON.stringify(session))}"><div class="plotControls"><span>拖选区间放大 · 双击恢复</span><button class="resetSleepPlot">恢复全览</button></div><div class="sleepReadout chartReadout" aria-live="polite">移动鼠标或点选片段，查看睡眠阶段与起止时间。</div><div class="sleepPlot interactivePlot" role="group" aria-label="交互式睡眠分期时间轴"></div></div>`;
 }
 function sessionDetail(session){
  const asleep=session.asleepMinutes;const rows=['AWAKE','REM','LIGHT','DEEP','ASLEEP','RESTLESS'].filter(k=>session.stageMinutes[k]!=null).map(k=>{const minutes=session.stageMinutes[k],percentage=['REM','LIGHT','DEEP','ASLEEP'].includes(k)&&asleep>0?`${(minutes/asleep*100).toFixed(1)}%`:'—';return `<tr><td><i style="background:${stageInfo[k][1]}"></i>${stageInfo[k][0]}</td><td>${duration(minutes)}</td><td>${percentage}</td></tr>`;}).join('');
@@ -31,4 +19,18 @@ export function renderSleepDetails(day){
  if(!sessions.length)return '<section class="sleepPanel"><h3>睡眠分期详情</h3><p class="caption">该日暂无详细睡眠记录，云端同步后会自动显示。</p></section>';
  const ordered=[...sessions].sort((a,b)=>Number(b.main)-Number(a.main)||Date.parse(a.start)-Date.parse(b.start));
  return `<section class="sleepPanel"><div class="sleepPanelHead"><div><p class="eyebrow">YOUR NIGHT, IN DETAIL</p><h3>睡眠分期详情</h3></div><span class="muted">Fitbit 设备估计</span></div>${ordered.map((s,i)=>s.main?`<h4 class="sleepSessionTitle">主睡眠</h4>${sessionDetail(s)}`:`<details class="napDetail"><summary>其他睡眠 / 午睡 · ${clock(s.start)}–${clock(s.end)} · ${duration(s.asleepMinutes)}</summary>${sessionDetail(s)}</details>`).join('')}</section>`;
+}
+
+export async function mountSleepCharts(root){
+ for(const wrapper of root.querySelectorAll('.sleepInteractive')){
+  if(wrapper.dataset.mounted)continue;
+  const folded=wrapper.closest('details');
+  if(folded&&!folded.open){folded.addEventListener('toggle',()=>{if(folded.open)mountSleepCharts(folded)},{once:true});continue;}
+  wrapper.dataset.mounted='true';
+  const session=JSON.parse(wrapper.dataset.session),full=session.type==='STAGES'||session.segments.some(s=>['REM','LIGHT','DEEP'].includes(s.type));
+  const keys=full?['DEEP','LIGHT','REM','SHORT','AWAKE']:['ASLEEP','RESTLESS','SHORT','AWAKE'],begin=wallTime(session.start),finish=wallTime(session.end);
+  const traces=keys.map((key,i)=>{const items=key==='SHORT'?session.shortAwakenings:session.segments.filter(s=>s.type===key);return {type:'bar',orientation:'h',name:stageInfo[key][0],base:items.map(s=>begin+s.start*1000),x:items.map(s=>(s.end-s.start)*1000),y:items.map(()=>i),width:.32,marker:{color:stageInfo[key][1]},customdata:items.map(s=>({detail:`${stageInfo[key][0]} · ${segmentTimeFor(session,s.start)}–${segmentTimeFor(session,s.end)} · ${duration((s.end-s.start)/60)}`})),hovertemplate:'%{customdata.detail}<extra></extra>'}});
+  const annotations=keys.map((key,i)=>({xref:'paper',x:0,y:i+.35,xanchor:'left',showarrow:false,text:stageInfo[key][0]+' · '+duration(key==='SHORT'?session.shortAwakeningMinutes:session.stageMinutes[key]),font:{size:12,color:'#264d40'}}));
+  await mountPlot(wrapper.querySelector('.sleepPlot'),traces,{height:440,intraday:true,range:[begin,finish],readout:wrapper.querySelector('.sleepReadout'),resetButton:wrapper.querySelector('.resetSleepPlot'),layout:{barmode:'overlay',bargap:.5,showlegend:false,hovermode:'closest',margin:{l:8,r:8,t:28,b:45},annotations,yaxis:{fixedrange:true,range:[-.35,keys.length-.35],visible:false},xaxis:{type:'date',range:[begin,finish],tickformat:'%H:%M',showspikes:true,spikemode:'across',spikesnap:'cursor',spikecolor:'#24382e',spikethickness:1},shapes:keys.map((key,i)=>({type:'rect',xref:'paper',x0:0,x1:1,y0:i-.16,y1:i+.16,fillcolor:'#edf0f6',line:{width:0},layer:'below'}))}});
+ }
 }

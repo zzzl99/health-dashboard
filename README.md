@@ -10,7 +10,7 @@ GitHub Actions 工作流 `.github/workflows/health-sync.yml` 使用标准 Ubuntu
 2. `health_client.py` 自动刷新访问令牌、读取最近 30 天健康数据。
 3. `recovery.py` 补取运动结束附近心率采样。
 4. `build.py` 与仓库已发布摘要合并，保留最多 180 天。
-5. 只提交 `docs/data.json`，上传 `docs/` 静态站点并部署 Pages。
+5. 只提交 `docs/data.json` 和 `docs/heart-rate.json`，上传 `docs/` 静态站点并部署 Pages。
 6. 无论成功或失败都清理临时 `.private`。失败不覆盖线上站点。
 
 必需仓库 Secrets：`GOOGLE_HEALTH_CLIENT_ID`、`GOOGLE_HEALTH_REFRESH_TOKEN`；本 OAuth 客户端同时使用 `GOOGLE_HEALTH_CLIENT_SECRET`。凭据不提交至源码、不写日志、不存 Actions 缓存或发布 artifact。原始健康记录仅在临时 runner 中处理，发布 artifact 仅包含 docs。授权撤销或到期时需要本人重新授权并更新 Secrets。
@@ -36,3 +36,11 @@ GitHub Actions 工作流 `.github/workflows/health-sync.yml` 使用标准 Ubuntu
 ## 详细睡眠
 
 每日弹窗提供主睡眠与午睡分期时间轴、阶段时长和占比、短暂觉醒以及逐段明细。由 `sleep_details.py` 筛选必要字段，不发布完整 API 对象。短暂觉醒可能与睡眠分期重叠，按区间并集统计且不重复扣减睡眠。缺失阶段不伪造为 REM/深睡；首次深睡等待时间只作为明确标注的推算项，不能代替 App 专有质量评分。日历睡眠与运动完成标记各自独立，手机端也显示“完成”。
+
+## 可交互指标卡片
+
+首页六张卡片：心率、静息心率、HRV、SpO2、睡眠状态、近七天运动（跑步与力量合并）。点击卡片打开日/7天/30天/3个月统计图。图表可悬停或点击查看细节、拖选横向区间放大、双击或按恢复全览复原，支持选取统计截止日期。睡眠分期图采用相同交互方式，包含准确阶段起止时间。
+
+图表使用本地托管的 Plotly basic 2.35.2（npm 官方包，MIT 许可证保存在 docs/vendor），不依赖外部图表 CDN。
+
+`heart_rate.py` 拉取最近 7 天 Fitbit Air 心率，在云端临时处理原始采样后，仅发布每分钟平均值/最小值/最大值/采样数和最近一次心率摘要。历史已完成日期复用汇总，今日和昨日重新读取以覆盖补同步。长期视图使用已积累的每日平均，缺失区间断线。每日静息心率、HRV 和血氧不伪造分钟曲线。时间轴统一为上海时间，网页刷新不会重置正在打开的指标弹窗缩放。

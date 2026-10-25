@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""GitHub-hosted refresh: only docs/data.json may leave the ephemeral workspace."""
+"""GitHub-hosted refresh: only public aggregate files may leave the ephemeral workspace."""
 import datetime as dt,json,os,pathlib,subprocess,sys
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 PRIVATE=ROOT/'.private'
@@ -31,6 +31,7 @@ def main():
     fetched=dt.datetime.fromisoformat(raw['fetchedAt'])
     if raw.get('errors') or (dt.datetime.now(dt.timezone.utc)-fetched).total_seconds()>3600:
         raise RuntimeError('Fresh complete source data required')
+    run('heart_rate.py')
     run('recovery.py')
     run('build.py')
     summary=json.loads((PRIVATE/'summary.json').read_text())
