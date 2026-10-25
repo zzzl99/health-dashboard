@@ -1,5 +1,5 @@
 """Fetch short heart-rate windows for runs; retain raw samples only on this Mac."""
-import datetime as dt,fcntl,importlib.util,json,pathlib
+import datetime as dt,fcntl,importlib.util,json,pathlib,os
 from build import instant,dedupe,RECOVERY_TYPES
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 CACHE=ROOT/'.private/recovery.json'
@@ -30,7 +30,7 @@ def calculate(rows,end,device=None):
     return best
 
 def main():
-    hp=pathlib.Path.home()/'Library/Application Support/PersonalHealthAnalysis/health.py'
+    hp=pathlib.Path(os.environ.get('HEALTH_CLIENT_PATH',str(pathlib.Path.home()/'Library/Application Support/PersonalHealthAnalysis/health.py')))
     spec=importlib.util.spec_from_file_location('health',hp);h=importlib.util.module_from_spec(spec);spec.loader.exec_module(h)
     raw=h.read(h.PRIVATE/'latest.json');cache=h.read(CACHE,{})
     with (h.PRIVATE/'run.lock').open('a') as lock:

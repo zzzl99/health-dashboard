@@ -1,7 +1,7 @@
-import json,datetime as dt,pathlib
+import json,datetime as dt,pathlib,os
 from zoneinfo import ZoneInfo
 ROOT=pathlib.Path(__file__).resolve().parents[1]
-SOURCE=pathlib.Path.home()/'Library/Application Support/PersonalHealthAnalysis/.private/latest.json'
+SOURCE=pathlib.Path(os.environ.get('HEALTH_DATA_PATH',str(pathlib.Path.home()/'Library/Application Support/PersonalHealthAnalysis/.private/latest.json')))
 TZ=ZoneInfo('Asia/Shanghai')
 RECOVERY_TYPES={'RUNNING','BIKING','STRENGTH_TRAINING','WEIGHTLIFTING','WEIGHT_LIFTING','CALISTHENICS','RESISTANCE_TRAINING'}
 def instant(s): return dt.datetime.fromisoformat(s.replace('Z','+00:00')).astimezone(TZ)
