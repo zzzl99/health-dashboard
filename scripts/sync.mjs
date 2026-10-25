@@ -1,10 +1,13 @@
 import {readFileSync,writeFileSync,existsSync,chmodSync} from 'node:fs';
-import {randomBytes,createCipheriv} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const run=(cmd,args)=>execFileSync(cmd,args,{cwd:root,stdio:'pipe',timeout:1200000});
+const configPath=path.join(process.env.HOME,'Library/Application Support/PersonalHealthAnalysis/.private/config.json');
+const privateConfig=JSON.parse(readFileSync(configPath,'utf8'));
+const env={...process.env};
+if(privateConfig.proxy){env.HTTPS_PROXY=privateConfig.proxy;env.HTTP_PROXY=privateConfig.proxy;}
+const run=(cmd,args)=>execFileSync(cmd,args,{cwd:root,env,stdio:'pipe',timeout:1200000});
 try{
  if(!process.argv.includes('--cached'))run('/Users/liuzhi/.local/bin/python3',[path.join(process.env.HOME,'Library/Application Support/PersonalHealthAnalysis/health.py'),'sync','--days','30']);
  run('/Users/liuzhi/.local/bin/python3',['scripts/build.py']);
