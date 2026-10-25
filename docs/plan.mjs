@@ -4,11 +4,11 @@ export function taskFor(date){
  if(date<PLAN_START||date>PLAN_END)return null;
  const i=Math.round((Date.parse(date)-Date.parse(PLAN_START))/864e5)%7;
  return [
-  {name:'力量 A',detail:'全身基础 · 15–20 分钟',strength:15},
+  {name:'力量 A＋C',detail:'俯卧撑＋引体向上 · 合计 15–20 分钟',strength:15},
   {name:'轻松跑',detail:'20 分钟 · 能说完整句子',run:20},
-  {name:'力量 B',detail:'髋背与稳定 · 15–20 分钟',strength:15},
-  {name:'恢复日',detail:'散步 20–30 分钟或休息'},
-  {name:'跑步 + 力量 C',detail:'跑 15–20 分钟 · 力量 10–15 分钟',run:15,strength:10},
+  {name:'力量 B',detail:'肩部训练 · 15–20 分钟',strength:15},
+  {name:'力量 A＋C',detail:'俯卧撑＋引体向上 · 合计 15–20 分钟',strength:15},
+  {name:'跑步 + 力量 B',detail:'跑 15–20 分钟＋肩部训练 15–20 分钟，可分开做',run:15,strength:15},
   {name:'恢复日',detail:'散步或休息，不补课'},
   {name:'轻松跑',detail:'25 分钟 · 保持轻松',run:25}
  ][i];
