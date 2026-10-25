@@ -32,3 +32,7 @@ GitHub Actions 工作流 `.github/workflows/health-sync.yml` 使用标准 Ubuntu
 `python3 -m unittest discover -s tests` 与 `node --test tests/plan.test.mjs`。
 
 保留旧本地 `sync.mjs` 和 `scheduled_publish.py` 作为手动维护入口，云端切换完成后不再定时运行。开发时可执行 `node scripts/sync.mjs --cached` 生成本地预览；不要与云端同时推送。`scripts/github.py` 是本机 CLI 网络辅助工具，不在云端使用，也不上传本机网络配置。
+
+## 详细睡眠
+
+每日弹窗提供主睡眠与午睡分期时间轴、阶段时长和占比、短暂觉醒以及逐段明细。由 `sleep_details.py` 筛选必要字段，不发布完整 API 对象。短暂觉醒可能与睡眠分期重叠，按区间并集统计且不重复扣减睡眠。缺失阶段不伪造为 REM/深睡；首次深睡等待时间只作为明确标注的推算项，不能代替 App 专有质量评分。日历睡眠与运动完成标记各自独立，手机端也显示“完成”。

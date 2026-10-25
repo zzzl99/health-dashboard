@@ -1,5 +1,6 @@
 import json,datetime as dt,pathlib,os
 from zoneinfo import ZoneInfo
+from sleep_details import summarize_sleep
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 SOURCE=pathlib.Path(os.environ.get('HEALTH_DATA_PATH',str(pathlib.Path.home()/'Library/Application Support/PersonalHealthAnalysis/.private/latest.json')))
 TZ=ZoneInfo('Asia/Shanghai')
@@ -25,11 +26,13 @@ def build(raw,old,recovery=None):
     start=instant(raw['periodStart']).date();end=instant(raw['periodEndExclusive']).date()
     for n in range((end-start).days):
         key=(start+dt.timedelta(days=n)).isoformat()
-        days[key]={'date':key,'sleepMinutes':None,'bedtime':None,'wake':None,'beforeMidnight':None,'napMinutes':None,'steps':None,'runMinutes':None,'runKm':None,'strengthMinutes':None,'activities':[]}
+        days[key]={'date':key,'sleepMinutes':None,'bedtime':None,'wake':None,'beforeMidnight':None,'napMinutes':None,'steps':None,'runMinutes':None,'runKm':None,'strengthMinutes':None,'activities':[],'sleepSessions':[]}
     def day(date):return days.get(date.isoformat())
     for r,a,b in dedupe(raw['data'].get('sleep',[]),'sleep'):
         d=day(b.date());s=r['sleep'];mins=s.get('summary',{}).get('minutesAsleep')
-        if d is None or mins is None:continue
+        if d is None:continue
+        d['sleepSessions'].append(summarize_sleep(s))
+        if mins is None:continue
         mins=float(mins)
         if s.get('metadata',{}).get('mainSleep'):
             if d['sleepMinutes'] is None or mins>d['sleepMinutes']:
