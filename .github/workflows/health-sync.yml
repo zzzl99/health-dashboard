@@ -1,10 +1,11 @@
 name: Health data sync and Pages
 on:
+  schedule:
+    - cron: '17 * * * *'
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'docs/**'
       - 'scripts/**'
       - 'tests/**'
       - '.github/workflows/health-sync.yml'
@@ -39,14 +40,14 @@ jobs:
           python -m unittest discover -s tests
           node --test tests/*.test.mjs
       - name: Refresh health data
-        if: github.event_name != 'push'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         env:
           GOOGLE_HEALTH_CLIENT_ID: ${{ secrets.GOOGLE_HEALTH_CLIENT_ID }}
           GOOGLE_HEALTH_CLIENT_SECRET: ${{ secrets.GOOGLE_HEALTH_CLIENT_SECRET }}
           GOOGLE_HEALTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_HEALTH_REFRESH_TOKEN }}
         run: python scripts/cloud_sync.py
       - name: Save public history
-        if: github.event_name != 'push'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
