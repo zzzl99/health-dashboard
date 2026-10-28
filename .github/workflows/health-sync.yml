@@ -1,8 +1,10 @@
-name: Health data sync and Pages
+name: Deploy locally updated health dashboard
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
+      - 'docs/**'
       - 'scripts/**'
       - 'tests/**'
       - '.github/workflows/health-sync.yml'
@@ -16,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
-      contents: write
+      contents: read
       pages: write
       id-token: write
     environment:
@@ -36,23 +38,6 @@ jobs:
         run: |
           python -m unittest discover -s tests
           node --test tests/*.test.mjs
-      - name: Refresh health data
-        if: false
-        env:
-          GOOGLE_HEALTH_CLIENT_ID: ${{ secrets.GOOGLE_HEALTH_CLIENT_ID }}
-          GOOGLE_HEALTH_CLIENT_SECRET: ${{ secrets.GOOGLE_HEALTH_CLIENT_SECRET }}
-          GOOGLE_HEALTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_HEALTH_REFRESH_TOKEN }}
-        run: python scripts/cloud_sync.py
-      - name: Save public history
-        if: false
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/data.json docs/heart-rate.json
-          if ! git diff --cached --quiet; then
-            git commit -m 'Update public health summary'
-            git push origin HEAD:main
-          fi
       - name: Upload website only
         uses: actions/upload-pages-artifact@v3
         with:
