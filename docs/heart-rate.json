@@ -1,5 +1,5 @@
 {
-  "attemptedAt": "2026-11-23T00:52:01.471559+08:00",
+  "attemptedAt": "2026-11-23T01:08:05.124376+08:00",
   "latest": {
     "time": "2026-11-23T00:40:42+08:00",
     "bpm": 75
@@ -47980,5 +47980,8 @@
       "samples": 1085
     }
   ],
-  "errors": {}
+  "errors": {
+    "2026-11-22": "Network failure; verify connectivity/proxy (curl 5)",
+    "2026-11-23": "Network failure; verify connectivity/proxy (curl 5)"
+  }
 }
